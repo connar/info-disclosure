@@ -1,0 +1,6 @@
+requests
+fake-useragent
+pwn
+tabulate
+termcolor
+uro
