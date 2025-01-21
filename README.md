@@ -6,8 +6,8 @@ So even if we would normally get a 404 error on a file, through the wayback mach
 # Setup - Clone the Repo
 First, clone the repo:
 ```
-git clone <repository_url>
-cd <repository_directory>
+git clone https://github.com/connar/info-disclosure.git
+cd info-disclosure
 ```
 
 # Setup - Install dependencies
