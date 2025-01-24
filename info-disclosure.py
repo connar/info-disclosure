@@ -10,11 +10,6 @@ from termcolor import colored
 
 urllib3.disable_warnings()
 
-def filter_urls(url_list, extensions):
-    ext_pattern = r"\.(" + "|".join(extensions) + r")($|\?)"
-    return [url for url in url_list if re.search(ext_pattern, url)]
-
-
 def count_extensions(url_list, extensions):
     counts = {ext: 0 for ext in extensions}
     for url in url_list:
@@ -40,7 +35,6 @@ def parse_args():
 
     return args
 
-
 def main():
     args = parse_args()
     domain = args.domain
@@ -53,16 +47,16 @@ def main():
         "img", "apk", "msi", "dmg", "tmp", "crt", "pem", "key", "pub", "asc"
     ]
 
-    ua = UserAgent()
-    headers = {"user-agent": ua.chrome}
+    extensions_pattern = "|".join(extensions_of_interest)
+    wburl = f"https://web.archive.org/cdx/search/cdx?url=*.{domain}/*&collapse=urlkey&output=text&fl=original&filter=original:.*\\.({extensions_pattern})"
 
-    wburl = f"https://web.archive.org/cdx/search/cdx?url=*.{domain}/*&collapse=urlkey&output=text&fl=original"
-
-    print(f"Fetching URLs for *.{domain}* ...")
+    print(f"Fetching URLs for *.{domain}* with specified extensions...")
     response_logger = log.progress("Downloading URLs")
     size_logger = log.progress("Data downloaded")
 
     try:
+        ua = UserAgent()
+        headers = {"user-agent": ua.chrome}
         response = requests.get(wburl, headers=headers, stream=True, verify=False)
 
         if response.status_code != 200:
@@ -81,7 +75,7 @@ def main():
             size_logger.status(f"{total_size} bytes downloaded / {size_limit_bytes if size_limit_bytes else 'N/A'} bytes")
             raw_urls.append(chunk.decode("utf-8", errors="ignore"))
 
-        raw_urls = "".join(raw_urls)
+        raw_urls = "".join(raw_urls).splitlines()
         response_logger.success("URLs fetched successfully")
         size_logger.success(f"Total downloaded: {total_size} bytes")
 
@@ -103,7 +97,7 @@ def main():
             stderr=subprocess.PIPE, 
             text=True
         )
-        deduplicated_urls, errors = process.communicate(input=raw_urls)
+        deduplicated_urls, errors = process.communicate(input="\n".join(raw_urls))
 
         if process.returncode != 0:
             url_logger.failure(f"uro command failed with error: {errors}")
@@ -116,11 +110,8 @@ def main():
         return
 
     print(f"Total unique URLs fetched: {len(deduplicated_urls)}")
-    filtered_urls = filter_urls(deduplicated_urls, extensions_of_interest)
 
-    print(f"Total URLs matching extensions of interest: {len(filtered_urls)}")
-
-    extension_counts = count_extensions(filtered_urls, extensions_of_interest)
+    extension_counts = count_extensions(deduplicated_urls, extensions_of_interest)
 
     table_data = []
     for ext, count in extension_counts.items():
@@ -134,7 +125,7 @@ def main():
 
     output_file = "info_disclosed_urls.txt"
     with open(output_file, "w") as f:
-        f.write("\n".join(filtered_urls))
+        f.write("\n".join(deduplicated_urls))
 
     print(f"Filtered URLs saved to {output_file}.")
 
