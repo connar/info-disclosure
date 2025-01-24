@@ -107,7 +107,7 @@ http://example.com:80/hoge.zip
 ## Searching for interesting words inside filetypes
 Say you have found a bunch of `pdf/zip/docx/other` files and you want to quickly parse them to find suspicious words like "`Confidential/Secret/Private/Restricted/[other words]`" that could indicate an information disclosure vulnerability. To do so, you can use the following commands based on the filetype you want to parse:
 
-**1 PDF Files (`.pdf`)**:
+**1. PDF Files (`.pdf`)**:
 `cat all_urls.txt | grep -Ea '\.pdf' | while read -r url; do curl -s "$url" | pdftotext - - | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
 
 **2. Word Documents (`.doc`, `.docx`)**:
