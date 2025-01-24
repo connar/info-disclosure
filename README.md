@@ -1,7 +1,7 @@
 # info-disclosure
-This script is used for information disclosure vulnerabilities on a target domain.  
-It utilizes the wayback machine to get all crawled urls and files of the specified domain and subdomains.  
-So even if we would normally get a 404 error on a file, through the wayback machine we might be lucky enough to get it back.
+The goal of this script is to try and find information disclosure vulnerabilities for a target domain.  
+The way it does this is use the wayback machine for quick parsing (and not raising alerts) on a domain. It searches for specific filetypes that might contain sensitive information.  
+After the urls containing the target filetype extensions have been found, you can try and browse them. If they do not exist today on the actual url, you can again use the wayback machine to try and download them from a previous snapshot.
 
 # Setup - Clone the Repo
 First, clone the repo:
@@ -104,7 +104,35 @@ http://example.com:80/hoge.zip
 ...
 ```
 
+## Searching for interesting words inside filetypes
+Say you have found a bunch of `pdf/zip/docx/other` files and you want to quickly parse them to find suspicious words like "`Confidential/Secret/Private/Restricted/[other words]`" that could indicate an information disclosure vulnerability. To do so, you can use the following commands based on the filetype you want to parse:
 
+**1 PDF Files (`.pdf`)**:
+`cat all_urls.txt | grep -Ea '\.pdf' | while read -r url; do curl -s "$url" | pdftotext - - | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**2. Word Documents (`.doc`, `.docx`)**:
+`cat all_urls.txt | grep -Ea '\.docx?$' | while read -r url; do curl -s "$url" | docx2txt /dev/stdin - | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**3. Excel Files (`.xls`, `.xlsx`)**:
+`cat all_urls.txt | grep -Ea '\.xlsx?$' | while read -r url; do curl -s "$url" | xlsx2csv - | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**4. Text Files (`.txt`, `.log`, `.ini`, `.yml`, `.yaml`, `.md`, `.csv`)**:
+`cat all_urls.txt | grep -Ea '\.(txt|log|ini|yml|yaml|md|csv)$' | while read -r url; do curl -s "$url" | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**5. Compressed Files (`.zip`, `.tar`, `.gz`, `.tgz`, `.7z`, `.rar`)**:
+`cat all_urls.txt | grep -Ea '\.(zip|tar|gz|tgz|7z|rar)$' | while read -r url; do curl -s "$url" -o temp_compressed_file && unzip -p temp_compressed_file | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**6. SQL Files (`.sql`)**:
+`cat all_urls.txt | grep -Ea '\.sql' | while read -r url; do curl -s "$url" | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**7. JSON Files (`.json`)**:
+`cat all_urls.txt | grep -Ea '\.json' | while read -r url; do curl -s "$url" | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**8. Executable Files (`.exe`, `.bin`, `.dll`, `.msi`, `.apk`)**:
+`cat all_urls.txt | grep -Ea '\.(exe|bin|dll|msi|apk)$' | while read -r url; do curl -s "$url" -o temp_executable_file && strings temp_executable_file | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
+
+**9. Images (`.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`)**:
+`cat all_urls.txt | grep -Ea '\.(jpg|jpeg|png|gif|bmp)$' | while read -r url; do curl -s "$url" -o temp_image_file && tesseract temp_image_file stdout | grep -Eaiq '(Interesting word 1|Interesting word 2|Interesting word 3| etc etc)' && echo "$url"; done`
 
 ### Reference
 This script was inspire by the insane @LostSec. Props to him!  
